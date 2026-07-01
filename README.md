@@ -1,4 +1,4 @@
-# Offline LaTeX Editor for Android
+# LaTeX Editor - Android
 
 <p align="center">
   <img src="https://img.shields.io/badge/Platform-Android-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Platform: Android" />
@@ -8,7 +8,7 @@
   <img src="https://img.shields.io/badge/Language-Kotlin-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white" alt="Language: Kotlin" />
 </p>
 
-A blazing fast, offline-first LaTeX editor and compiler built specifically for Android. Powered by a native port of the **Tectonic** typesetting engine, this app provides a zero-lag authoring experience and instant local PDF generation—no internet connection required.
+A blazing fast LaTeX editor and compiler built specifically for Android. Powered by a native port of the **Tectonic** typesetting engine, this app provides a zero-lag authoring experience and instant local PDF generation—no internet connection required.
 
 ## Why This App?
 
@@ -46,7 +46,7 @@ Get the latest stable release for your device architecture (ARM64 or ARMv7) from
 - **Target SDK**: Android 14 (API 34)
 
 ## SEO Tags & Keywords
-*Android LaTeX editor, offline LaTeX compiler, Android Tectonic frontend, local PDF generator, TeX editor Android, best LaTeX app Android.*
+*LaTeX Editor Android, offline LaTeX compiler, Android Tectonic frontend, local PDF generator, TeX editor Android, best LaTeX app Android, offline.*
 
 ## License
 
