@@ -1,5 +1,9 @@
 # Offline LaTeX Editor for Android
 
+<p align="center">
+  <img src="docs/editor.png" width="45%" alt="Authentic App Screenshot" />
+</p>
+
 A blazing fast, offline-first LaTeX editor and compiler built specifically for Android. Powered by a native port of the **Tectonic** typesetting engine, this app provides a zero-lag authoring experience and instant local PDF generation—no internet connection required.
 
 ## Why This App?
