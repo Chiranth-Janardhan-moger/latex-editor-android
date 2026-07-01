@@ -46,6 +46,12 @@ object LocalLatexCompiler {
             )
             processBuilder.directory(workDir)
             processBuilder.redirectErrorStream(true)
+
+            // Tectonic strictly requires a writable HOME/XDG_CACHE_HOME to download its format bundle
+            val env = processBuilder.environment()
+            env["HOME"] = workDir.absolutePath
+            env["XDG_CACHE_HOME"] = workDir.absolutePath
+            env["TMPDIR"] = workDir.absolutePath
             
             val process = processBuilder.start()
             
@@ -59,7 +65,9 @@ object LocalLatexCompiler {
             logBuilder.append("[INFO] Tectonic finished with exit code $exitCode\n")
             
             if (exitCode != 0) {
-                throw Exception("Tectonic compilation failed with exit code $exitCode")
+                // Return the actual Tectonic output in the exception so the user can see what failed
+                val logOutput = logBuilder.toString()
+                throw Exception("Tectonic compilation failed with exit code $exitCode.\n\n--- TECTONIC LOG ---\n$logOutput")
             }
             
             if (!pdfFile.exists()) {
