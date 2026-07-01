@@ -40,7 +40,7 @@ enum class CompileMode {
 
 class LatexViewModel : ViewModel() {
 
-    private val _compileMode = MutableStateFlow(CompileMode.AUTO)
+    private val _compileMode = MutableStateFlow(CompileMode.OFFLINE)
     val compileMode: StateFlow<CompileMode> = _compileMode.asStateFlow()
 
     private val _compileLog = MutableStateFlow("note: Ready to invoke Tectonic LaTeX compiler engine.\nnote: Waiting for user action...")
