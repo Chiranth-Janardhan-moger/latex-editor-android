@@ -5,6 +5,7 @@ import android.util.Log
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
+import java.util.zip.ZipInputStream
 
 object LocalLatexCompiler {
 
@@ -24,13 +25,30 @@ object LocalLatexCompiler {
         sourceFile.writeText(source, Charsets.UTF_8)
         logBuilder.append("[INFO] Wrote document.tex to local cache.\n")
 
-        // Ensure Mozilla root certificates are available for Tectonic's internal Rust OpenSSL
-        val certFile = File(workDir, "cacert.pem")
-        if (!certFile.exists()) {
-            context.assets.open("cacert.pem").use { input ->
-                certFile.outputStream().use { output ->
-                    input.copyTo(output)
+        // Pre-warm the Tectonic cache for 100% true offline operation
+        val tectonicCacheDir = File(workDir, "Tectonic")
+        if (!tectonicCacheDir.exists()) {
+            logBuilder.append("[INFO] Pre-warming fully offline LaTeX bundle cache...\n")
+            try {
+                context.assets.open("tectonic_cache.zip").use { input ->
+                    ZipInputStream(input).use { zis ->
+                        var entry = zis.nextEntry
+                        while (entry != null) {
+                            // Extract straight into Tectonic dir since zip contains the inner files/folders of cache
+                            val file = File(tectonicCacheDir, entry.name)
+                            if (entry.isDirectory) {
+                                file.mkdirs()
+                            } else {
+                                file.parentFile?.mkdirs()
+                                file.outputStream().use { zis.copyTo(it) }
+                            }
+                            entry = zis.nextEntry
+                        }
+                    }
                 }
+                logBuilder.append("[INFO] Cache warmed successfully!\n")
+            } catch (e: Exception) {
+                logBuilder.append("[WARN] Failed to unzip cache: ${e.localizedMessage}\n")
             }
         }
         
@@ -46,10 +64,6 @@ object LocalLatexCompiler {
         logBuilder.append("[INFO] Executing Tectonic engine...\n")
         
         try {
-            // Note: Since this is offline, Tectonic will use its default web bundle caching
-            // if it has internet, or fail if it needs un-cached packages.
-            // For a 100% offline solution from the first boot, you would need to bundle
-            // a .tar bundle and pass it via `-b path/to/bundle.tar`.
             val processBuilder = ProcessBuilder(
                 tectonicBinary.absolutePath, 
                 "document.tex"
@@ -57,15 +71,13 @@ object LocalLatexCompiler {
             processBuilder.directory(workDir)
             processBuilder.redirectErrorStream(true)
 
-            // Tectonic strictly requires a writable HOME/XDG_CACHE_HOME to download its format bundle
+            // Tectonic strictly requires a writable HOME/XDG_CACHE_HOME to download its format bundle.
+            // By setting XDG_CACHE_HOME to workDir, Tectonic will use workDir/Tectonic,
+            // which we just pre-warmed from the zip file!
             val env = processBuilder.environment()
             env["HOME"] = workDir.absolutePath
             env["XDG_CACHE_HOME"] = workDir.absolutePath
             env["TMPDIR"] = workDir.absolutePath
-            
-            // Android uses a custom path for TLS CA certificates, which static musl binaries cannot find by default.
-            // We use a bundled standard Mozilla cacert.pem file instead to guarantee OpenSSL can verify HTTPS requests.
-            env["SSL_CERT_FILE"] = certFile.absolutePath
             
             val process = processBuilder.start()
             
