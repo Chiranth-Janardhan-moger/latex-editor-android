@@ -70,8 +70,9 @@ object LocalLatexCompiler {
             connection.setRequestProperty("Connection", "close")
             
             val responseCode = connection.responseCode
+            val responseMessage = connection.responseMessage ?: "OK"
             val out = client.getOutputStream()
-            out.write("HTTP/1.1 $responseCode OK\r\n".toByteArray())
+            out.write("HTTP/1.1 $responseCode $responseMessage\r\n".toByteArray())
             
             for ((k, vList) in connection.headerFields) {
                 if (k != null && !k.equals("Transfer-Encoding", ignoreCase = true) && !k.equals("Connection", ignoreCase = true)) {
