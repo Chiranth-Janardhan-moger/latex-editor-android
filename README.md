@@ -8,12 +8,6 @@
   <img src="https://img.shields.io/badge/Language-Kotlin-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white" alt="Language: Kotlin" />
 </p>
 
-<p align="center">
-  <img src="docs/editor.png" width="45%" alt="Authentic Editor View" />
-  &nbsp;&nbsp;
-  <img src="docs/console.png" width="45%" alt="Authentic Console View" />
-</p>
-
 A blazing fast, offline-first LaTeX editor and compiler built specifically for Android. Powered by a native port of the **Tectonic** typesetting engine, this app provides a zero-lag authoring experience and instant local PDF generation—no internet connection required.
 
 ## Why This App?
@@ -31,6 +25,14 @@ The majority of LaTeX editors on Android are either slow, rely heavily on cloud 
 - **One-Tap Compilation**: Generate beautiful PDFs with a single tap.
 - **Expandable Console**: A sleek, pill-shaped floating compile log that expands seamlessly to help you debug LaTeX compilation errors.
 - **Hybrid Support**: Automatically downloads missing fonts or packages if you have an active connection, then aggressively caches them for future offline use.
+
+## Screenshots
+
+<p align="center">
+  <img src="docs/editor.png" width="45%" alt="Authentic Editor View" />
+  &nbsp;&nbsp;
+  <img src="docs/console.png" width="45%" alt="Authentic Console View" />
+</p>
 
 ## Download & Installation
 
