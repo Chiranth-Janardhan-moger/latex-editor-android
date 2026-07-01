@@ -25,17 +25,18 @@ object LocalLatexCompiler {
         sourceFile.writeText(source, Charsets.UTF_8)
         logBuilder.append("[INFO] Wrote document.tex to local cache.\n")
 
-        // Pre-warm the Tectonic cache for 100% true offline operation
-        val tectonicCacheDir = File(workDir, "Tectonic")
-        if (!tectonicCacheDir.exists()) {
-            logBuilder.append("[INFO] Pre-warming fully offline LaTeX bundle cache...\n")
+        // Extract the pre-bundled offline LaTeX bundle (flat directory with all .tex, .cls, .tfm, .otf, .fmt files)
+        // This bundle was generated from a real Tectonic cache and contains everything needed for offline compilation.
+        val bundleDir = File(workDir, "tectonic_bundle")
+        if (!bundleDir.exists()) {
+            logBuilder.append("[INFO] Extracting offline LaTeX bundle (first run only)...\n")
             try {
-                context.assets.open("tectonic_cache.zip").use { input ->
+                bundleDir.mkdirs()
+                context.assets.open("tectonic_bundle.zip").use { input ->
                     ZipInputStream(input).use { zis ->
                         var entry = zis.nextEntry
                         while (entry != null) {
-                            // Extract straight into Tectonic dir since zip contains the inner files/folders of cache
-                            val file = File(tectonicCacheDir, entry.name)
+                            val file = File(bundleDir, entry.name)
                             if (entry.isDirectory) {
                                 file.mkdirs()
                             } else {
@@ -46,9 +47,10 @@ object LocalLatexCompiler {
                         }
                     }
                 }
-                logBuilder.append("[INFO] Cache warmed successfully!\n")
+                logBuilder.append("[INFO] Bundle extracted successfully!\n")
             } catch (e: Exception) {
-                logBuilder.append("[WARN] Failed to unzip cache: ${e.localizedMessage}\n")
+                logBuilder.append("[ERROR] Failed to extract bundle: ${e.localizedMessage}\n")
+                throw Exception("Failed to extract offline LaTeX bundle: ${e.localizedMessage}")
             }
         }
         
@@ -61,19 +63,21 @@ object LocalLatexCompiler {
         }
         
         logBuilder.append("[INFO] Located executable Tectonic engine at ${tectonicBinary.absolutePath}\n")
-        logBuilder.append("[INFO] Executing Tectonic engine...\n")
+        logBuilder.append("[INFO] Executing Tectonic engine (fully offline)...\n")
         
         try {
+            // Use -b to point Tectonic to the local flat bundle directory.
+            // Use --only-cached to guarantee zero network access.
             val processBuilder = ProcessBuilder(
-                tectonicBinary.absolutePath, 
+                tectonicBinary.absolutePath,
+                "-b", bundleDir.absolutePath,
+                "--only-cached",
                 "document.tex"
             )
             processBuilder.directory(workDir)
             processBuilder.redirectErrorStream(true)
 
-            // Tectonic strictly requires a writable HOME/XDG_CACHE_HOME to download its format bundle.
-            // By setting XDG_CACHE_HOME to workDir, Tectonic will use workDir/Tectonic,
-            // which we just pre-warmed from the zip file!
+            // Set environment variables for Tectonic's internal operations
             val env = processBuilder.environment()
             env["HOME"] = workDir.absolutePath
             env["XDG_CACHE_HOME"] = workDir.absolutePath
@@ -91,7 +95,6 @@ object LocalLatexCompiler {
             logBuilder.append("[INFO] Tectonic finished with exit code $exitCode\n")
             
             if (exitCode != 0) {
-                // Return the actual Tectonic output in the exception so the user can see what failed
                 val logOutput = logBuilder.toString()
                 throw Exception("Tectonic compilation failed with exit code $exitCode.\n\n--- TECTONIC LOG ---\n$logOutput")
             }
