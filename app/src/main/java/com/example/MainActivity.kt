@@ -182,8 +182,8 @@ fun LatexAppScreen(viewModel: LatexViewModel) {
                     // Mode Options
                     listOf(
                         Triple(CompileMode.AUTO, "Auto (Hybrid)", "Try remote online compiler first, fallback seamlessly to local Tectonic compiler."),
-                        Triple(CompileMode.ONLINE, "Force Online", "Always compile remotely via high-fidelity Tectonic engine (requires Internet)."),
-                        Triple(CompileMode.OFFLINE, "Force Offline (Tectonic)", "Always compile on-device locally using the Tectonic Offline Engine. Zero bandwidth.")
+                        Triple(CompileMode.ONLINE, "Online", "Always compile remotely via high-fidelity Tectonic engine (requires Internet)."),
+                        Triple(CompileMode.OFFLINE, "Offline", "Always compile on-device locally using the Tectonic Offline Engine. Zero bandwidth.")
                     ).forEach { (mode, name, desc) ->
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
