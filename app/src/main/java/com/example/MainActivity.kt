@@ -22,6 +22,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -46,6 +47,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -545,6 +548,8 @@ fun PDFPreviewView(
     val listState = rememberLazyListState()
     var pageCount by remember(pdfFile, compileState) { mutableStateOf(0) }
     var isLogExpanded by remember { mutableStateOf(false) }
+    var logHeight by remember { mutableStateOf(140.dp) }
+    val density = LocalDensity.current
 
     // Count total pages when compilation is successful
     LaunchedEffect(pdfFile, compileState) {
@@ -760,11 +765,11 @@ fun PDFPreviewView(
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
-                .then(if (isLogExpanded) Modifier.fillMaxWidth().height(140.dp) else Modifier.wrapContentWidth().height(40.dp))
+                .then(if (isLogExpanded) Modifier.fillMaxWidth().height(logHeight) else Modifier.wrapContentWidth().height(40.dp))
                 .clip(if (isLogExpanded) RoundedCornerShape(16.dp) else RoundedCornerShape(20.dp))
                 .background(ConsoleBackground)
                 .clickable { isLogExpanded = !isLogExpanded }
-                .then(if (isLogExpanded) Modifier.padding(horizontal = 12.dp, vertical = 10.dp) else Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+                .then(if (isLogExpanded) Modifier.padding(horizontal = 12.dp, vertical = 6.dp) else Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
         ) {
             val indicatorColor = when (compileState) {
                 is CompileState.Idle -> Color.Gray
@@ -775,6 +780,31 @@ fun PDFPreviewView(
 
             if (isLogExpanded) {
                 Column(modifier = Modifier.fillMaxSize()) {
+                    // Drag Handle
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(24.dp)
+                            .pointerInput(Unit) {
+                                detectVerticalDragGestures { change, dragAmount ->
+                                    change.consume()
+                                    // dragAmount is positive when dragging DOWN -> smaller height
+                                    // dragAmount is negative when dragging UP -> larger height
+                                    val dragDp = with(density) { (dragAmount).toDp() }
+                                    logHeight = (logHeight - dragDp).coerceIn(100.dp, 600.dp)
+                                }
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .width(40.dp)
+                                .height(4.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(Color.Gray.copy(alpha = 0.5f))
+                        )
+                    }
+
                     // Header row with animated/pulsing indicator and chevron toggle
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -942,8 +972,15 @@ class LatexSyntaxTransformation(
     private val mathColor: Color
 ) : VisualTransformation {
     override fun filter(text: AnnotatedString): TransformedText {
-        val builder = AnnotatedString.Builder()
+        // Fast path: Initialize with full text instantly
+        val builder = AnnotatedString.Builder(text)
         val rawText = text.text
+        
+        // Pre-create styles to avoid allocation in loop
+        val commandStyle = SpanStyle(color = commandColor)
+        val bracketStyle = SpanStyle(color = bracketColor, fontWeight = FontWeight.Bold)
+        val commentStyle = SpanStyle(color = commentColor)
+        val mathStyle = SpanStyle(color = mathColor)
         
         var i = 0
         while (i < rawText.length) {
@@ -953,39 +990,25 @@ class LatexSyntaxTransformation(
                 // Comment line: % to end of line
                 val lineEnd = rawText.indexOf('\n', i)
                 val end = if (lineEnd != -1) lineEnd else rawText.length
-                builder.withStyle(SpanStyle(color = commentColor)) {
-                    append(rawText.substring(i, end))
-                }
+                builder.addStyle(commentStyle, i, end)
                 i = end
             } else if (char == '\\') {
                 // Command macro
-                builder.withStyle(SpanStyle(color = commandColor)) {
-                    append('\\')
-                }
+                val start = i
                 i++
-                var cmdStart = i
                 while (i < rawText.length && rawText[i].isLetter()) {
                     i++
                 }
-                if (i > cmdStart) {
-                    builder.withStyle(SpanStyle(color = commandColor)) {
-                        append(rawText.substring(cmdStart, i))
-                    }
-                }
+                builder.addStyle(commandStyle, start, i)
             } else if (char == '{' || char == '}' || char == '[' || char == ']') {
                 // Formatting Brackets
-                builder.withStyle(SpanStyle(color = bracketColor, fontWeight = FontWeight.Bold)) {
-                    append(char)
-                }
+                builder.addStyle(bracketStyle, i, i + 1)
                 i++
             } else if (char == '$') {
                 // Math sign
-                builder.withStyle(SpanStyle(color = mathColor)) {
-                    append('$')
-                }
+                builder.addStyle(mathStyle, i, i + 1)
                 i++
             } else {
-                builder.append(char)
                 i++
             }
         }
