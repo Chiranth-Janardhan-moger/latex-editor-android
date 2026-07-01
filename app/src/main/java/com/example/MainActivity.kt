@@ -729,52 +729,51 @@ fun PDFPreviewView(
             }
         }
 
-        // High-fidelity Floating Compile Log Pill at the bottom!
+        // Floating Compile Log FAB (AI chat bot style)
         Box(
             modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
-                .then(if (isLogExpanded) Modifier.fillMaxWidth() else Modifier.wrapContentWidth())
-                .height(if (isLogExpanded) 140.dp else 40.dp)
-                .clip(RoundedCornerShape(if (isLogExpanded) 16.dp else 20.dp))
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+                .then(if (isLogExpanded) Modifier.fillMaxWidth().height(140.dp) else Modifier.size(56.dp))
+                .clip(if (isLogExpanded) RoundedCornerShape(16.dp) else CircleShape)
                 .background(ConsoleBackground)
                 .clickable { isLogExpanded = !isLogExpanded }
-                .padding(horizontal = 12.dp, vertical = 10.dp)
+                .then(if (isLogExpanded) Modifier.padding(horizontal = 12.dp, vertical = 10.dp) else Modifier)
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                // Header row with animated/pulsing indicator and chevron toggle
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.then(if (isLogExpanded) Modifier.fillMaxWidth() else Modifier.wrapContentWidth())
-                ) {
-                    val indicatorColor = when (compileState) {
-                        is CompileState.Idle -> Color.Gray
-                        is CompileState.Compiling -> Color(0xFFFFB74D) // Warm Orange
-                        is CompileState.Success -> ConsoleSuccess
-                        is CompileState.Error -> ConsoleError
-                    }
-                    
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(indicatorColor)
-                    )
-                    
-                    Spacer(modifier = Modifier.width(6.dp))
-                    
-                    Text(
-                        text = "COMPILE LOG",
-                        style = TextStyle(
-                            color = Color(0xFFE6E1E5),
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp
-                        ),
-                        modifier = if (isLogExpanded) Modifier.weight(1f) else Modifier.wrapContentWidth()
-                    )
+            val indicatorColor = when (compileState) {
+                is CompileState.Idle -> Color.Gray
+                is CompileState.Compiling -> Color(0xFFFFB74D) // Warm Orange
+                is CompileState.Success -> ConsoleSuccess
+                is CompileState.Error -> ConsoleError
+            }
 
-                    if (isLogExpanded) {
+            if (isLogExpanded) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    // Header row with animated/pulsing indicator and chevron toggle
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(indicatorColor)
+                        )
+                        
+                        Spacer(modifier = Modifier.width(6.dp))
+                        
+                        Text(
+                            text = "COMPILE LOG",
+                            style = TextStyle(
+                                color = Color(0xFFE6E1E5),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.sp
+                            ),
+                            modifier = Modifier.weight(1f)
+                        )
+
                         Icon(
                             imageVector = Icons.Default.KeyboardArrowDown,
                             contentDescription = "Collapse Log",
@@ -782,9 +781,7 @@ fun PDFPreviewView(
                             modifier = Modifier.size(18.dp)
                         )
                     }
-                }
 
-                if (isLogExpanded) {
                     Spacer(modifier = Modifier.height(8.dp))
                     
                     // Scrollable Monospace Logs inside a SelectionContainer
@@ -798,21 +795,36 @@ fun PDFPreviewView(
                         SelectionContainer {
                             val textStyle = TextStyle(
                                 color = when (compileState) {
-                                    is CompileState.Error -> ConsoleError
-                                    is CompileState.Success -> ConsoleSuccess
+                                    is CompileState.Error -> ConsoleErrorText
                                     else -> ConsoleText
                                 },
+                                fontSize = 11.sp,
                                 fontFamily = FontFamily.Monospace,
-                                fontSize = 10.sp,
-                                lineHeight = 14.sp
+                                lineHeight = 16.sp
                             )
-
-                            Text(
-                                text = compileLog,
-                                style = textStyle
-                            )
+                            Text(text = compileLog, style = textStyle)
                         }
                     }
+                }
+            } else {
+                // Collapsed FAB view (AI chat bot style)
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.Code,
+                        contentDescription = "Open Compile Log",
+                        tint = Color(0xFFE6E1E5),
+                        modifier = Modifier.size(26.dp)
+                    )
+                    // Status indicator dot as a badge in top right
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(top = 10.dp, end = 10.dp)
+                            .size(12.dp)
+                            .clip(CircleShape)
+                            .background(indicatorColor)
+                            .border(2.dp, ConsoleBackground, CircleShape)
+                    )
                 }
             }
         }
