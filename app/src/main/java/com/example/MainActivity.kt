@@ -444,12 +444,7 @@ fun CodeEditorView(
     }
 
     val lineCount = remember(textFieldValue.text) { 
-        var count = 1
-        val text = textFieldValue.text
-        for (i in 0 until text.length) {
-            if (text[i] == '\n') count++
-        }
-        count
+        textFieldValue.text.count { it == '\n' } + 1
     }
     
     val lineScrollState = rememberScrollState()
@@ -549,7 +544,6 @@ fun PDFPreviewView(
     var pageCount by remember(pdfFile, compileState) { mutableStateOf(0) }
     var isLogExpanded by remember { mutableStateOf(false) }
     var logHeight by remember { mutableStateOf(140.dp) }
-    val density = LocalDensity.current
 
     // Count total pages when compilation is successful
     LaunchedEffect(pdfFile, compileState) {
@@ -790,8 +784,7 @@ fun PDFPreviewView(
                                     change.consume()
                                     // dragAmount is positive when dragging DOWN -> smaller height
                                     // dragAmount is negative when dragging UP -> larger height
-                                    val dragDp = with(density) { (dragAmount).toDp() }
-                                    logHeight = (logHeight - dragDp).coerceIn(100.dp, 600.dp)
+                                    logHeight = (logHeight - dragAmount.toDp()).coerceIn(100.dp, 600.dp)
                                 }
                             },
                         contentAlignment = Alignment.Center
@@ -865,29 +858,26 @@ fun PDFPreviewView(
                 }
             } else {
                 // Collapsed Pill view (AI chat bot style)
-                Row(
+                Box(
                     modifier = Modifier.fillMaxHeight(), 
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Default.Code,
-                            contentDescription = "Open Compile Log",
-                            tint = Color(0xFFE6E1E5),
-                            modifier = Modifier.size(20.dp)
-                        )
-                        // Status indicator dot as a badge in top right
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .offset(x = 6.dp, y = (-4).dp)
-                                .size(8.dp)
-                                .clip(CircleShape)
-                                .background(indicatorColor)
-                                .border(1.dp, ConsoleBackground, CircleShape)
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Default.Code,
+                        contentDescription = "Open Compile Log",
+                        tint = Color(0xFFE6E1E5),
+                        modifier = Modifier.size(20.dp)
+                    )
+                    // Status indicator dot as a badge in top right
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .offset(x = 6.dp, y = (-4).dp)
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(indicatorColor)
+                            .border(1.dp, ConsoleBackground, CircleShape)
+                    )
                 }
             }
         }
