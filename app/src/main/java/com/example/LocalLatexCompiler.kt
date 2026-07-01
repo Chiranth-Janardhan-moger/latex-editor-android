@@ -24,6 +24,16 @@ object LocalLatexCompiler {
         sourceFile.writeText(source, Charsets.UTF_8)
         logBuilder.append("[INFO] Wrote document.tex to local cache.\n")
 
+        // Ensure Mozilla root certificates are available for Tectonic's internal Rust OpenSSL
+        val certFile = File(workDir, "cacert.pem")
+        if (!certFile.exists()) {
+            context.assets.open("cacert.pem").use { input ->
+                certFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+        }
+        
         // Locate the Tectonic binary in the native libraries directory
         val nativeLibraryDir = context.applicationInfo.nativeLibraryDir
         val tectonicBinary = File(nativeLibraryDir, "libtectonic.so")
@@ -54,8 +64,8 @@ object LocalLatexCompiler {
             env["TMPDIR"] = workDir.absolutePath
             
             // Android uses a custom path for TLS CA certificates, which static musl binaries cannot find by default.
-            // Point OpenSSL to Android's certificate directory so Tectonic can download its web bundle over HTTPS.
-            env["SSL_CERT_DIR"] = "/system/etc/security/cacerts"
+            // We use a bundled standard Mozilla cacert.pem file instead to guarantee OpenSSL can verify HTTPS requests.
+            env["SSL_CERT_FILE"] = certFile.absolutePath
             
             val process = processBuilder.start()
             
