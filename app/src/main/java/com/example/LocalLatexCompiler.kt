@@ -53,6 +53,10 @@ object LocalLatexCompiler {
             env["XDG_CACHE_HOME"] = workDir.absolutePath
             env["TMPDIR"] = workDir.absolutePath
             
+            // Android uses a custom path for TLS CA certificates, which static musl binaries cannot find by default.
+            // Point OpenSSL to Android's certificate directory so Tectonic can download its web bundle over HTTPS.
+            env["SSL_CERT_DIR"] = "/system/etc/security/cacerts"
+            
             val process = processBuilder.start()
             
             val reader = BufferedReader(InputStreamReader(process.inputStream))
