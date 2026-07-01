@@ -755,16 +755,16 @@ fun PDFPreviewView(
             }
         }
 
-        // Floating Compile Log FAB (AI chat bot style)
+        // Floating Compile Log (Pill-shaped AI chat bot style)
         Box(
             modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp)
-                .then(if (isLogExpanded) Modifier.fillMaxWidth().height(140.dp) else Modifier.size(56.dp))
-                .clip(if (isLogExpanded) RoundedCornerShape(16.dp) else CircleShape)
+                .align(Alignment.BottomStart)
+                .padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
+                .then(if (isLogExpanded) Modifier.fillMaxWidth().height(140.dp) else Modifier.wrapContentWidth().height(40.dp))
+                .clip(if (isLogExpanded) RoundedCornerShape(16.dp) else RoundedCornerShape(20.dp))
                 .background(ConsoleBackground)
                 .clickable { isLogExpanded = !isLogExpanded }
-                .then(if (isLogExpanded) Modifier.padding(horizontal = 12.dp, vertical = 10.dp) else Modifier)
+                .then(if (isLogExpanded) Modifier.padding(horizontal = 12.dp, vertical = 10.dp) else Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
         ) {
             val indicatorColor = when (compileState) {
                 is CompileState.Idle -> Color.Gray
@@ -834,24 +834,30 @@ fun PDFPreviewView(
                     }
                 }
             } else {
-                // Collapsed FAB view (AI chat bot style)
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Default.Code,
-                        contentDescription = "Open Compile Log",
-                        tint = Color(0xFFE6E1E5),
-                        modifier = Modifier.size(26.dp)
-                    )
-                    // Status indicator dot as a badge in top right
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(top = 10.dp, end = 10.dp)
-                            .size(12.dp)
-                            .clip(CircleShape)
-                            .background(indicatorColor)
-                            .border(2.dp, ConsoleBackground, CircleShape)
-                    )
+                // Collapsed Pill view (AI chat bot style)
+                Row(
+                    modifier = Modifier.fillMaxHeight(), 
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.Code,
+                            contentDescription = "Open Compile Log",
+                            tint = Color(0xFFE6E1E5),
+                            modifier = Modifier.size(20.dp)
+                        )
+                        // Status indicator dot as a badge in top right
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .offset(x = 6.dp, y = (-4).dp)
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(indicatorColor)
+                                .border(1.dp, ConsoleBackground, CircleShape)
+                        )
+                    }
                 }
             }
         }
