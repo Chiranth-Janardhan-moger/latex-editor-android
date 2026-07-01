@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Paper Sheet Shadow / Border -->
+    <path
+        android:fillColor="#10000000"
+        android:pathData="M35,22h28l16,16v48c0,3.3 -2.7,6 -6,6H35c-3.3,0 -6,-2.7 -6,-6V28c0,-3.3 2.7,-6 6,-6z" />
+
+    <!-- Paper Sheet Body -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M34,20h28l16,16v48c0,3.3 -2.7,6 -6,6H34c-3.3,0 -6,-2.7 -6,-6V26c0,-3.3 2.7,-6 6,-6z" />
+
+    <!-- Paper Folded Corner -->
+    <path
+        android:fillColor="#D0BCFF"
+        android:pathData="M62,20v16h16z" />
+
+    <!-- Summation Symbol (Σ) representing LaTeX math compile capabilities -->
+    <path
+        android:fillColor="#6750A4"
+        android:pathData="M44,43h15v2h-11l6,6l-6,6h11v2h-15v-2l6,-6l-6,-6z" />
+        
+    <!-- Tiny Horizontal Lines below the symbol representing document text -->
+    <path
+        android:fillColor="#94A3B8"
+        android:pathData="M42,65h24v2H42z M42,71h16v2H42z" />
+</vector>

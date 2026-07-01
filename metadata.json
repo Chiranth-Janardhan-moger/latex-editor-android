@@ -1,0 +1,6 @@
+{
+  "name": "LaTeX Editor & Compiler",
+  "description": "An offline-first inspired elegant LaTeX editor and PDF viewer utilizing high-fidelity rendering, real-time code editing, and seamless local file integration via the Storage Access Framework.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
