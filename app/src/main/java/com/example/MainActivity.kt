@@ -425,7 +425,30 @@ fun CodeEditorView(
     content: String,
     onContentChange: (String) -> Unit
 ) {
-    var lineCount by remember(content) { mutableStateOf(content.split("\n").size) }
+    var textFieldValue by remember { 
+        mutableStateOf(
+            androidx.compose.ui.text.input.TextFieldValue(
+                text = content, 
+                selection = androidx.compose.ui.text.TextRange(content.length)
+            ) 
+        ) 
+    }
+    
+    LaunchedEffect(content) {
+        if (content != textFieldValue.text) {
+            textFieldValue = textFieldValue.copy(text = content)
+        }
+    }
+
+    val lineCount = remember(textFieldValue.text) { 
+        var count = 1
+        val text = textFieldValue.text
+        for (i in 0 until text.length) {
+            if (text[i] == '\n') count++
+        }
+        count
+    }
+    
     val lineScrollState = rememberScrollState()
     val editorScrollState = rememberScrollState()
 
@@ -483,8 +506,11 @@ fun CodeEditorView(
                 .padding(vertical = 12.dp, horizontal = 8.dp)
         ) {
             BasicTextField(
-                value = content,
-                onValueChange = onContentChange,
+                value = textFieldValue,
+                onValueChange = { 
+                    textFieldValue = it
+                    onContentChange(it.text)
+                },
                 textStyle = TextStyle(
                     color = Color(0xFFF8FAFC), // Off-white Slate 50
                     fontSize = 13.sp,
@@ -795,7 +821,8 @@ fun PDFPreviewView(
                         SelectionContainer {
                             val textStyle = TextStyle(
                                 color = when (compileState) {
-                                    is CompileState.Error -> ConsoleErrorText
+                                    is CompileState.Error -> ConsoleError
+                                    is CompileState.Success -> ConsoleSuccess
                                     else -> ConsoleText
                                 },
                                 fontSize = 11.sp,
