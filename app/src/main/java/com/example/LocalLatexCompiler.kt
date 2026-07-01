@@ -165,7 +165,7 @@ object LocalLatexCompiler {
             val currentProxyPort = getProxyPort()
             val processBuilder = ProcessBuilder(
                 tectonicBinary.absolutePath,
-                "-w", "http://127.0.0.1:$currentProxyPort/default_bundle_v33.tar",
+                "-b", "http://127.0.0.1:$currentProxyPort/default_bundle_v33.tar",
                 "document.tex"
             )
             processBuilder.directory(workDir)
