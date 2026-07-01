@@ -539,17 +539,14 @@ fun PDFPreviewView(
         }
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(BrandBackground)
+            .background(Color(0xFF0D1117))
     ) {
-        // Document Card Container - Upper space
+        // Document Card Container - Takes full height
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .background(Color(0xFF0D1117)),
+            modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
             // Document Contents
@@ -732,17 +729,14 @@ fun PDFPreviewView(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // High-fidelity Compile Log Box at the bottom!
-        // matching the exact visual layout from the HTML mockup:
-        // bg-[#211f26] rounded-2xl p-4 flex flex-col shadow-inner relative
+        // High-fidelity Floating Compile Log Pill at the bottom!
         Box(
             modifier = Modifier
-                .fillMaxWidth()
+                .align(Alignment.BottomStart)
                 .padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
+                .then(if (isLogExpanded) Modifier.fillMaxWidth() else Modifier.wrapContentWidth())
                 .height(if (isLogExpanded) 140.dp else 40.dp)
-                .clip(RoundedCornerShape(16.dp))
+                .clip(RoundedCornerShape(if (isLogExpanded) 16.dp else 20.dp))
                 .background(ConsoleBackground)
                 .clickable { isLogExpanded = !isLogExpanded }
                 .padding(horizontal = 12.dp, vertical = 10.dp)
@@ -751,7 +745,7 @@ fun PDFPreviewView(
                 // Header row with animated/pulsing indicator and chevron toggle
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.then(if (isLogExpanded) Modifier.fillMaxWidth() else Modifier.wrapContentWidth())
                 ) {
                     val indicatorColor = when (compileState) {
                         is CompileState.Idle -> Color.Gray
@@ -777,15 +771,17 @@ fun PDFPreviewView(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 1.sp
                         ),
-                        modifier = Modifier.weight(1f)
+                        modifier = if (isLogExpanded) Modifier.weight(1f) else Modifier.wrapContentWidth()
                     )
 
-                    Icon(
-                        imageVector = if (isLogExpanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
-                        contentDescription = if (isLogExpanded) "Collapse Log" else "Expand Log",
-                        tint = Color(0xFFE6E1E5),
-                        modifier = Modifier.size(18.dp)
-                    )
+                    if (isLogExpanded) {
+                        Icon(
+                            imageVector = Icons.Default.KeyboardArrowDown,
+                            contentDescription = "Collapse Log",
+                            tint = Color(0xFFE6E1E5),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
 
                 if (isLogExpanded) {
