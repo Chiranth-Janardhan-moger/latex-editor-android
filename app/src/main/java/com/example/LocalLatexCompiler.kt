@@ -163,9 +163,21 @@ object LocalLatexCompiler {
             // We use our local Kotlin proxy to bypass the rustls SSL panic on Android.
             // This allows Tectonic to dynamically download any missing files!
             val currentProxyPort = getProxyPort()
+            val bundleUrl = "http://127.0.0.1:$currentProxyPort/default_bundle_v33.tar"
+            
+            // Re-link the dynamic proxy URL to the pre-warmed cache index SHA256.
+            // If we don't do this, Tectonic thinks it's a completely new bundle and downloads all 600 files sequentially!
+            val urlsDir = File(cacheDir, "urls")
+            urlsDir.mkdirs()
+            val encodedUrl = "http,58,,47,,47,127.0.0.1,58,$currentProxyPort,47,default_bundle_v33.tar"
+            val mappingFile = File(urlsDir, encodedUrl)
+            if (!mappingFile.exists()) {
+                mappingFile.writeText("6ffe055852f8faf66c0acbe1a7fb27f87b869a90bad1204f3bf4d9683f597c7c\n")
+            }
+
             val processBuilder = ProcessBuilder(
                 tectonicBinary.absolutePath,
-                "-b", "http://127.0.0.1:$currentProxyPort/default_bundle_v33.tar",
+                "-b", bundleUrl,
                 "document.tex"
             )
             processBuilder.directory(workDir)
