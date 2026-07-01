@@ -1,17 +1,15 @@
 package com.example
 
 import android.content.Context
-import android.os.Build
 import android.util.Log
 import java.io.BufferedReader
 import java.io.File
-import java.io.FileOutputStream
 import java.io.InputStreamReader
 
 object LocalLatexCompiler {
 
     fun compile(context: Context, source: String, logBuilder: StringBuilder): File {
-        logBuilder.append("[INFO] Starting true offline compilation using Tectonic...\n")
+        logBuilder.append("[INFO] Starting true offline compilation using native Tectonic engine...\n")
         
         val workDir = context.cacheDir
         val sourceFile = File(workDir, "document.tex")
@@ -26,49 +24,28 @@ object LocalLatexCompiler {
         sourceFile.writeText(source, Charsets.UTF_8)
         logBuilder.append("[INFO] Wrote document.tex to local cache.\n")
 
-        // Determine correct ABI
-        val abis = Build.SUPPORTED_ABIS
-        var assetFolder = "arm64-v8a"
-        if (abis.contains("x86_64")) {
-            assetFolder = "x86_64"
-        } else if (abis.contains("armeabi-v7a") && !abis.contains("arm64-v8a")) {
-            assetFolder = "armeabi-v7a"
-        } else if (abis.contains("arm64-v8a")) {
-            assetFolder = "arm64-v8a"
+        // Locate the Tectonic binary in the native libraries directory
+        val nativeLibraryDir = context.applicationInfo.nativeLibraryDir
+        val tectonicBinary = File(nativeLibraryDir, "libtectonic.so")
+        
+        if (!tectonicBinary.exists()) {
+            throw Exception("Tectonic binary not found in native library directory at ${tectonicBinary.absolutePath}")
         }
-
-        // Extract Tectonic binary if not exists
-        val tectonicBinary = File(workDir, "tectonic")
-        if (!tectonicBinary.exists() || tectonicBinary.length() == 0L) {
-            logBuilder.append("[INFO] Extracting Tectonic binary for $assetFolder...\n")
-            try {
-                context.assets.open("$assetFolder/tectonic").use { inputStream ->
-                    FileOutputStream(tectonicBinary).use { outputStream ->
-                        inputStream.copyTo(outputStream)
-                    }
-                }
-                tectonicBinary.setExecutable(true, false)
-                logBuilder.append("[INFO] Extracted binary successfully.\n")
-            } catch (e: Exception) {
-                logBuilder.append("[ERROR] Failed to extract Tectonic binary: ${e.message}\n")
-                throw e
-            }
-        }
-
+        
+        logBuilder.append("[INFO] Located executable Tectonic engine at ${tectonicBinary.absolutePath}\n")
         logBuilder.append("[INFO] Executing Tectonic engine...\n")
         
         try {
+            // Note: Since this is offline, Tectonic will use its default web bundle caching
+            // if it has internet, or fail if it needs un-cached packages.
+            // For a 100% offline solution from the first boot, you would need to bundle
+            // a .tar bundle and pass it via `-b path/to/bundle.tar`.
             val processBuilder = ProcessBuilder(
                 tectonicBinary.absolutePath, 
                 "document.tex"
             )
             processBuilder.directory(workDir)
             processBuilder.redirectErrorStream(true)
-            
-            // Note: In a fully offline environment without a cached bundle, 
-            // Tectonic might fail on first run if it needs to download packages.
-            // A truly offline robust solution requires bundling a .tar web bundle 
-            // and running with -b <bundle_file>.
             
             val process = processBuilder.start()
             
