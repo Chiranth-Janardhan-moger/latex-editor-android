@@ -15,6 +15,7 @@ object LocalLatexCompiler {
 
     private var proxyServerSocket: ServerSocket? = null
     private var proxyPort: Int = -1
+    private var proxyCacheDir: File? = null
 
     @Synchronized
     private fun getProxyPort(): Int {
@@ -59,15 +60,23 @@ object LocalLatexCompiler {
             
             android.util.Log.d("LocalLatexCompiler", "[PROXY] Request: $method $path, Range: ${headers["Range"]}")
             
-            // If Tectonic is just checking the bundle index (no Range header), we can safely
-            // return 304 Not Modified to force it to use the local cache instantly.
-            // This prevents a 1-5 second network hang on every compilation!
-            if (!headers.containsKey("Range") && path.contains("default_bundle")) {
-                val out = client.getOutputStream()
-                out.write("HTTP/1.1 304 Not Modified\r\nConnection: close\r\n\r\n".toByteArray())
-                out.flush()
-                client.close()
-                return
+            val isIndexCheck = !headers.containsKey("Range") && path.contains("default_bundle")
+            
+            // Serve cached index to avoid network delays and Tectonic crashes on 304!
+            if (isIndexCheck && proxyCacheDir != null) {
+                val cachedIndex = File(proxyCacheDir, "cached_index.bin")
+                if (cachedIndex.exists() && cachedIndex.length() > 0L) {
+                    val out = client.getOutputStream()
+                    out.write("HTTP/1.1 200 OK\r\n".toByteArray())
+                    out.write("Content-Length: ${cachedIndex.length()}\r\n".toByteArray())
+                    out.write("Connection: close\r\n\r\n".toByteArray())
+                    if (method != "HEAD") {
+                        cachedIndex.inputStream().use { it.copyTo(out) }
+                    }
+                    out.flush()
+                    client.close()
+                    return
+                }
             }
             
             val targetUrl = URL("https://relay.fullyjustified.net" + path)
@@ -100,7 +109,18 @@ object LocalLatexCompiler {
             
             if (method != "HEAD") {
                 val inputStream = if (responseCode >= 400) connection.errorStream else connection.inputStream
-                inputStream?.copyTo(out)
+                if (inputStream != null) {
+                    if (isIndexCheck && responseCode == 200 && proxyCacheDir != null) {
+                        val cachedIndex = File(proxyCacheDir, "cached_index.bin")
+                        val byteOut = java.io.ByteArrayOutputStream()
+                        inputStream.copyTo(byteOut)
+                        val bytes = byteOut.toByteArray()
+                        cachedIndex.writeBytes(bytes)
+                        out.write(bytes)
+                    } else {
+                        inputStream.copyTo(out)
+                    }
+                }
             }
             out.flush()
         } catch (e: Exception) {
@@ -185,6 +205,7 @@ object LocalLatexCompiler {
         logBuilder.append("[INFO] Executing Tectonic engine (dynamic online/offline)...\n")
         
         try {
+            proxyCacheDir = cacheDir
             // We use our local Kotlin proxy to bypass the rustls SSL panic on Android.
             // This allows Tectonic to dynamically download any missing files!
             val currentProxyPort = getProxyPort()
