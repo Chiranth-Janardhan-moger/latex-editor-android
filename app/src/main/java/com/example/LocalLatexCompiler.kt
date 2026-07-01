@@ -57,8 +57,23 @@ object LocalLatexCompiler {
                 }
             }
             
+            android.util.Log.d("LocalLatexCompiler", "[PROXY] Request: $method $path, Range: ${headers["Range"]}")
+            
+            // If Tectonic is just checking the bundle index (no Range header), we can safely
+            // return 304 Not Modified to force it to use the local cache instantly.
+            // This prevents a 1-5 second network hang on every compilation!
+            if (!headers.containsKey("Range") && path.contains("default_bundle")) {
+                val out = client.getOutputStream()
+                out.write("HTTP/1.1 304 Not Modified\r\nConnection: close\r\n\r\n".toByteArray())
+                out.flush()
+                client.close()
+                return
+            }
+            
             val targetUrl = URL("https://relay.fullyjustified.net" + path)
             val connection = targetUrl.openConnection() as HttpURLConnection
+            connection.connectTimeout = 5000 // 5 seconds max wait
+            connection.readTimeout = 10000
             connection.requestMethod = method
             connection.instanceFollowRedirects = true
             
@@ -124,21 +139,31 @@ object LocalLatexCompiler {
             logBuilder.append("[INFO] Extracting pre-warmed LaTeX cache (first run only)...\n")
             try {
                 cacheDir.mkdirs()
+                val tempZip = File(workDir, "temp_cache.zip")
                 context.assets.open("tectonic_cache.zip").use { input ->
-                    ZipInputStream(input).use { zis ->
-                        var entry = zis.nextEntry
-                        while (entry != null) {
-                            val file = File(cacheDir, entry.name)
-                            if (entry.isDirectory) {
-                                file.mkdirs()
-                            } else {
-                                file.parentFile?.mkdirs()
-                                file.outputStream().use { zis.copyTo(it) }
+                    tempZip.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                
+                java.util.zip.ZipFile(tempZip).use { zip ->
+                    val entries = zip.entries()
+                    while (entries.hasMoreElements()) {
+                        val entry = entries.nextElement()
+                        val file = File(cacheDir, entry.name)
+                        if (entry.isDirectory) {
+                            file.mkdirs()
+                        } else {
+                            file.parentFile?.mkdirs()
+                            zip.getInputStream(entry).use { input ->
+                                file.outputStream().use { output ->
+                                    input.copyTo(output)
+                                }
                             }
-                            entry = zis.nextEntry
                         }
                     }
                 }
+                tempZip.delete()
                 logBuilder.append("[INFO] Cache extracted successfully!\n")
             } catch (e: Exception) {
                 logBuilder.append("[ERROR] Failed to extract cache: ${e.localizedMessage}\n")
