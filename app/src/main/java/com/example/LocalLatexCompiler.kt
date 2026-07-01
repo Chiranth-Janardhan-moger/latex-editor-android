@@ -21,8 +21,14 @@ object LocalLatexCompiler {
             pdfFile.delete()
         }
 
+        // Preprocess source for XeTeX compatibility (Tectonic uses XeTeX internally).
+        // Many pdfTeX-specific commands crash XeTeX, so we strip them automatically.
+        val processedSource = source
+            .replace("\\pdfgentounicode=1", "% pdfgentounicode removed (XeTeX handles Unicode natively)")
+            .replace("\\input{glyphtounicode}", "% glyphtounicode removed (XeTeX handles Unicode natively)")
+
         // Write the source tex file
-        sourceFile.writeText(source, Charsets.UTF_8)
+        sourceFile.writeText(processedSource, Charsets.UTF_8)
         logBuilder.append("[INFO] Wrote document.tex to local cache.\n")
 
         // Extract the pre-bundled offline LaTeX bundle (flat directory with all .tex, .cls, .tfm, .otf, .fmt files)
