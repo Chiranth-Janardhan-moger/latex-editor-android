@@ -1,6 +1,14 @@
 # Offline LaTeX Editor for Android
 
 <p align="center">
+  <img src="https://img.shields.io/badge/Platform-Android-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Platform: Android" />
+  <img src="https://img.shields.io/github/v/release/Chiranth-Janardhan-moger/offline-latex-editor-android?style=for-the-badge&color=blue" alt="Release Version" />
+  <img src="https://img.shields.io/badge/Engine-Tectonic-8A2BE2?style=for-the-badge" alt="Engine: Tectonic" />
+  <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License: MIT" />
+  <img src="https://img.shields.io/badge/Language-Kotlin-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white" alt="Language: Kotlin" />
+</p>
+
+<p align="center">
   <img src="docs/editor.png" width="45%" alt="Authentic Editor View" />
   &nbsp;&nbsp;
   <img src="docs/console.png" width="45%" alt="Authentic Console View" />
