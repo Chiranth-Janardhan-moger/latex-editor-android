@@ -58,6 +58,38 @@ object LocalLatexCompiler {
                 }
             }
             
+            android.util.Log.d("LocalLatexCompiler", "[PROXY] Request: $method $path, Range: ${headers["Range"]}")
+            
+            val isIndexCheck = !headers.containsKey("Range") && path.endsWith(".index.gz")
+            val isShaCheck = path.endsWith("sha256sum", ignoreCase = true) || path.endsWith("SHA256SUM")
+            
+            // Tectonic checks for SHA256SUM but the remote server returns 404.
+            // If we don't mock the 404, the proxy will throw an exception offline.
+            if (isShaCheck) {
+                val out = client.getOutputStream()
+                out.write("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n".toByteArray())
+                out.flush()
+                client.close()
+                return
+            }
+            
+            // Serve cached index to avoid network delays and Tectonic crashes on 304!
+            if (isIndexCheck && proxyCacheDir != null) {
+                val cachedIndex = File(proxyCacheDir, "cached_index.bin")
+                if (cachedIndex.exists() && cachedIndex.length() > 0L) {
+                    val out = client.getOutputStream()
+                    out.write("HTTP/1.1 200 OK\r\n".toByteArray())
+                    out.write("Content-Length: ${cachedIndex.length()}\r\n".toByteArray())
+                    out.write("Connection: close\r\n\r\n".toByteArray())
+                    if (method != "HEAD") {
+                        cachedIndex.inputStream().use { it.copyTo(out) }
+                    }
+                    out.flush()
+                    client.close()
+                    return
+                }
+            }
+            
             val targetUrl = URL("https://relay.fullyjustified.net" + path)
             val connection = targetUrl.openConnection() as HttpURLConnection
             connection.connectTimeout = 5000 // 5 seconds max wait
@@ -89,7 +121,16 @@ object LocalLatexCompiler {
             if (method != "HEAD") {
                 val inputStream = if (responseCode >= 400) connection.errorStream else connection.inputStream
                 if (inputStream != null) {
-                    inputStream.copyTo(out)
+                    if (isIndexCheck && responseCode == 200 && proxyCacheDir != null) {
+                        val cachedIndex = File(proxyCacheDir, "cached_index.bin")
+                        val byteOut = java.io.ByteArrayOutputStream()
+                        inputStream.copyTo(byteOut)
+                        val bytes = byteOut.toByteArray()
+                        cachedIndex.writeBytes(bytes)
+                        out.write(bytes)
+                    } else {
+                        inputStream.copyTo(out)
+                    }
                 }
             }
             out.flush()
@@ -191,54 +232,28 @@ object LocalLatexCompiler {
                 mappingFile.writeText("6ffe055852f8faf66c0acbe1a7fb27f87b869a90bad1204f3bf4d9683f597c7c\n")
             }
 
-            // First pass: try entirely offline using -C flag
-            val pbOffline = ProcessBuilder(
+            val processBuilder = ProcessBuilder(
                 tectonicBinary.absolutePath,
-                "-C",
                 "-b", bundleUrl,
                 "document.tex"
             )
-            pbOffline.directory(workDir)
-            pbOffline.redirectErrorStream(true)
+            processBuilder.directory(workDir)
+            processBuilder.redirectErrorStream(true)
 
-            val envOff = pbOffline.environment()
-            envOff["HOME"] = workDir.absolutePath
-            envOff["XDG_CACHE_HOME"] = workDir.absolutePath
-            envOff["TMPDIR"] = workDir.absolutePath
+            val env = processBuilder.environment()
+            env["HOME"] = workDir.absolutePath
+            env["XDG_CACHE_HOME"] = workDir.absolutePath
+            env["TMPDIR"] = workDir.absolutePath
             
-            val procOff = pbOffline.start()
-            val outOff = procOff.inputStream.bufferedReader().readText()
-            var exitCode = procOff.waitFor()
+            val process = processBuilder.start()
             
-            logBuilder.append(outOff)
-            
-            // If the offline compilation failed because of a missing bundle file (e.g. font), fallback to network
-            if (exitCode != 0 && (
-                outOff.contains("font not found", ignoreCase = true) ||
-                outOff.contains("this bundle isn't cached", ignoreCase = true) ||
-                outOff.contains("unable to find file", ignoreCase = true) ||
-                outOff.contains("didn't find", ignoreCase = true)
-            )) {
-                logBuilder.append("\n[INFO] Missing package/font detected. Falling back to dynamic online mode to download missing files...\n")
-                
-                val pbOnline = ProcessBuilder(
-                    tectonicBinary.absolutePath,
-                    "-b", bundleUrl,
-                    "document.tex"
-                )
-                pbOnline.directory(workDir)
-                pbOnline.redirectErrorStream(true)
-                val envOn = pbOnline.environment()
-                envOn["HOME"] = workDir.absolutePath
-                envOn["XDG_CACHE_HOME"] = workDir.absolutePath
-                envOn["TMPDIR"] = workDir.absolutePath
-                
-                val procOn = pbOnline.start()
-                val outOn = procOn.inputStream.bufferedReader().readText()
-                exitCode = procOn.waitFor()
-                
-                logBuilder.append(outOn)
+            val reader = BufferedReader(InputStreamReader(process.inputStream))
+            var line: String?
+            while (reader.readLine().also { line = it } != null) {
+                logBuilder.append(line).append("\n")
             }
+            
+            val exitCode = process.waitFor()
             logBuilder.append("[INFO] Tectonic finished with exit code $exitCode\n")
             
             if (exitCode != 0) {
